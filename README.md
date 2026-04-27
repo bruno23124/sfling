@@ -1,9 +1,10 @@
 --[[ 
-    ULTIMATE SPIN FLING (REPOSITORIO SFLING)
-    Como usar: Ative e encoste nas pessoas.
+    SETSTATE FLING V3 (REPOSITORIO SFLING)
+    Esse método quebra a proteção do servidor.
 ]]
 
 local player = game.Players.LocalPlayer
+local runService = game:GetService("RunService")
 local coreGui = game:GetService("CoreGui")
 
 if coreGui:FindFirstChild("FlingGUI") then coreGui:FindFirstChild("FlingGUI"):Destroy() end
@@ -19,45 +20,34 @@ local flingActive = false
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 150, 0, 40)
 frame.Position = UDim2.new(1, -170, 1, -110)
-frame.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.Parent = screenGui
 
 local btn = Instance.new("TextButton")
 btn.Size = UDim2.new(1, -10, 1, -10)
 btn.Position = UDim2.new(0, 5, 0, 5)
-btn.Text = "Fling (Spin): OFF"
-btn.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+btn.Text = "Fling V3: OFF"
+btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 btn.Parent = frame
 
--- LOGICA DO SPIN (Gira o RootPart para criar força centrífuga)
-task.spawn(function()
-    while true do
-        task.wait()
-        if flingActive then
-            local char = player.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                -- Cria uma velocidade angular absurda
-                local velocity = hrp:FindFirstChild("FlingVelocity") or Instance.new("AngularVelocity")
-                velocity.Name = "FlingVelocity"
-                velocity.Parent = hrp
-                velocity.MaxTorque = 999999999
-                velocity.AngularVelocity = Vector3.new(0, 999999999, 0) -- Gira no eixo Y
-                velocity.Attachment0 = hrp:FindFirstChild("RootAttachment") or Instance.new("Attachment", hrp)
-                
-                -- Remove a colisão interna para não te travar
-                for _, part in pairs(char:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
+-- LOGICA DE FLING POR ESTADO DE FISICA
+runService.Stepped:Connect(function()
+    if flingActive then
+        local char = player.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        
+        if hrp and hum then
+            -- Força o estado de física que ignora o anti-fling do mapa
+            hum:ChangeState(Enum.HumanoidStateType.Physics)
+            hrp.Velocity = Vector3.new(0, 5000, 0) -- Velocidade invisível pro servidor
+            
+            -- Remove colisões internas para você não bugar
+            for _, v in pairs(char:GetChildren()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
                 end
-            end
-        else
-            -- Remove o giro ao desligar
-            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if hrp and hrp:FindFirstChild("FlingVelocity") then
-                hrp.FlingVelocity:Destroy()
             end
         end
     end
@@ -65,6 +55,10 @@ end)
 
 btn.MouseButton1Click:Connect(function()
     flingActive = not flingActive
-    btn.Text = flingActive and "Fling: GIRANDO 🌀" or "Fling (Spin): OFF"
-    btn.BackgroundColor3 = flingActive and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(100, 0, 0)
+    btn.Text = flingActive and "FLING: ATIVO 🔥" or "Fling V3: OFF"
+    btn.BackgroundColor3 = flingActive and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(80, 80, 80)
+    
+    if not flingActive then
+        player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+    end
 end)
