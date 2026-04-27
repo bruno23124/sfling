@@ -1,64 +1,69 @@
 --[[ 
-    SETSTATE FLING V3 (REPOSITORIO SFLING)
-    Esse método quebra a proteção do servidor.
+    RIPA ULTRA HITBOX - 60 STUDS
+    Alcance massivo para dominar o mapa.
 ]]
 
 local player = game.Players.LocalPlayer
-local runService = game:GetService("RunService")
 local coreGui = game:GetService("CoreGui")
 
-if coreGui:FindFirstChild("FlingGUI") then coreGui:FindFirstChild("FlingGUI"):Destroy() end
+if coreGui:FindFirstChild("RipaUltra") then coreGui:FindFirstChild("RipaUltra"):Destroy() end
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingGUI"
+screenGui.Name = "RipaUltra"
 screenGui.Parent = coreGui
 screenGui.ResetOnSpawn = false 
 
-local flingActive = false
+local hitboxActive = false
+local rangeSize = 60 -- O alcance gigante que você pediu
 
 -- Interface
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 150, 0, 40)
-frame.Position = UDim2.new(1, -170, 1, -110)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Size = UDim2.new(0, 160, 0, 45)
+frame.Position = UDim2.new(1, -180, 1, -110)
+frame.BackgroundColor3 = Color3.fromRGB(50, 20, 0)
 frame.Parent = screenGui
 
 local btn = Instance.new("TextButton")
 btn.Size = UDim2.new(1, -10, 1, -10)
 btn.Position = UDim2.new(0, 5, 0, 5)
-btn.Text = "Fling V3: OFF"
-btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+btn.Text = "Hitbox 60: OFF"
+btn.BackgroundColor3 = Color3.fromRGB(100, 40, 0)
 btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 btn.Parent = frame
 
--- LOGICA DE FLING POR ESTADO DE FISICA
-runService.Stepped:Connect(function()
-    if flingActive then
-        local char = player.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        
-        if hrp and hum then
-            -- Força o estado de física que ignora o anti-fling do mapa
-            hum:ChangeState(Enum.HumanoidStateType.Physics)
-            hrp.Velocity = Vector3.new(0, 5000, 0) -- Velocidade invisível pro servidor
-            
-            -- Remove colisões internas para você não bugar
-            for _, v in pairs(char:GetChildren()) do
-                if v:IsA("BasePart") then
-                    v.CanCollide = false
+-- LOOP DA HITBOX GIGANTE
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if hitboxActive then
+            pcall(function()
+                local char = player.Character
+                local tool = char:FindFirstChild("Ripa") or player.Backpack:FindFirstChild("Ripa")
+                
+                if tool and tool:FindFirstChild("Handle") then
+                    -- Expande a Hitbox para 60 studs
+                    tool.Handle.Size = Vector3.new(rangeSize, rangeSize, rangeSize)
+                    tool.Handle.Transparency = 1 -- Mantém invisível para não verem o bloco gigante
+                    tool.Handle.CanCollide = false
+                    tool.Handle.Massless = true
                 end
-            end
+            end)
+        else
+            -- Volta ao normal quando desliga
+            pcall(function()
+                local tool = player.Character:FindFirstChild("Ripa") or player.Backpack:FindFirstChild("Ripa")
+                if tool and tool:FindFirstChild("Handle") then
+                    tool.Handle.Size = Vector3.new(1, 5, 1)
+                    tool.Handle.Transparency = 0
+                end
+            end)
         end
     end
 end)
 
-btn.MouseButton1Click:Connect(function()
-    flingActive = not flingActive
-    btn.Text = flingActive and "FLING: ATIVO 🔥" or "Fling V3: OFF"
-    btn.BackgroundColor3 = flingActive and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(80, 80, 80)
-    
-    if not flingActive then
-        player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
-    end
-end)
+-- AUTO CLICKER PARA AJUDAR NO ALCANCE
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if hitboxActive then
+            local tool = player.Character and player.Character:FindFirstChild("Ripa")
