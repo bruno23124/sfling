@@ -1,6 +1,6 @@
 --[[ 
-    RIPA GHOST V19 - INVISIBILIDADE & IMUNIDADE
-    Bypass: VB Anti-Kick & Cosmo Punish System
+    GHOST BYPASS V20 - RANK SPOOFER (DONO)
+    Bypass: Cosmo$, VB & Staff Rank Levels
 ]]
 
 local Players = game:GetService("Players")
@@ -8,42 +8,46 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local localPlayer = Players.LocalPlayer
 
--- 1. CLOAK DE ADMIN (Imunidade ao Cosmo)
--- O Cosmo checa se player.Admin.Value == true antes de banir
+-- 1. CLOAK DE ADMIN (Imunidade Cosmo)
 local admin = Instance.new("BoolValue")
 admin.Name = "Admin"
 admin.Value = true
 admin.Parent = localPlayer
 
--- 2. ANTI-KICK (Quebra o sistema de expulsão)
--- Isso impede que o servidor consiga dar "Kick" em você via comando
+-- 2. RANK SPOOFER (Intercepta GetRankInGroup)
+-- Quando o Anti-Cheat ou um Script de Staff checar seu level, ele lerá 300
 local mt = getrawmetatable(game)
-local old = mt.__namecall
+local oldNamecall = mt.__namecall
 setreadonly(mt, false)
 
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
-    if method == "Kick" or method == "kick" then
-        return nil -- Ignora o comando de expulsar
+    local args = {...}
+
+    if method == "GetRankInGroup" or method == "getRankInGroup" then
+        return 300 -- Retorna nível de Dono do Jogo
     end
-    return old(self, ...)
+    
+    if method == "Kick" or method == "kick" then
+        return nil -- Bloqueia o comando de expulsão
+    end
+
+    return oldNamecall(self, ...)
 end)
 setreadonly(mt, true)
 
--- 3. INVISIBILIDADE GHOST (-100 Studs)
--- Você fica embaixo do mapa, mas sua arma continua batendo em cima
-local flying = true
+-- 3. INVISIBILIDADE E GHOST MODE
+local depth = -120 -- Profundidade extra para fugir de qualquer sensor
 task.spawn(function()
-    while flying do
-        RunService.Heartbeat:Wait()
+    while task.wait() do
         if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            -- Mantém você seguro debaixo do chão para ninguém te ver
-            localPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+            -- Trava você debaixo do mapa para ficar invisível
+            localPlayer.Character.HumanoidRootPart.CFrame = localPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 0)
         end
     end
 end)
 
--- 4. RIPA KILL AURA (Usando o Token do VB)
+-- 4. KILL AURA (Ripa) com Bypass de Token
 local function getVBToken()
     for _, v in pairs(ReplicatedStorage:GetChildren()) do
         if v:IsA("RemoteFunction") and v:GetAttribute("oyvey") then
@@ -60,7 +64,7 @@ local function attackAll()
     if tool and tool:FindFirstChild("Handle") then
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= localPlayer and p.Character and p.Character:FindFirstChild("Head") then
-                -- Ataque Silencioso
+                -- O Cosmo não consegue bloquear o firetouchinterest por ser físico
                 firetouchinterest(p.Character.Head, tool.Handle, 0)
                 firetouchinterest(p.Character.Head, tool.Handle, 1)
             end
@@ -68,25 +72,16 @@ local function attackAll()
     end
 end
 
--- 5. INTERFACE DISCRETA
+-- 5. BOTÃO INVISÍVEL (Nome genérico para o Cosmo2 não detectar)
 local sg = Instance.new("ScreenGui", game:GetService("CoreGui"))
-sg.Name = "Win32_Sys"
+sg.Name = "SystemCheck"
 local btn = Instance.new("TextButton", sg)
-btn.Size = UDim2.new(0, 40, 0, 40)
-btn.Position = UDim2.new(0, 10, 0.5, 0)
-btn.Text = "G" -- G de Ghost
-btn.BackgroundTransparency = 0.6
+btn.Size = UDim2.new(0, 30, 0, 30)
+btn.Position = UDim2.new(0, 5, 0.5, 0)
+btn.Text = "" -- Sem texto para não ser pego pelo LogService
+btn.BackgroundTransparency = 0.9
 
-btn.MouseButton1Click:Connect(function()
-    attackAll()
-    btn.Text = "OK"
-    task.wait(1)
-    btn.Text = "G"
-end)
-
--- Tecla K para ativar a Ripa
+btn.MouseButton1Click:Connect(attackAll)
 game:GetService("UserInputService").InputBegan:Connect(function(io, chat)
-    if not chat and io.KeyCode == Enum.KeyCode.K then
-        attackAll()
-    end
+    if not chat and io.KeyCode == Enum.KeyCode.K then attackAll() end
 end)
