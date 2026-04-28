@@ -1,96 +1,69 @@
 --[[ 
-    STEALTH FLY V15 - ANTI-DETECTION
-    Bypass: Cosmo$ (Punish Check) & VB Anti-Cheat (Speed Check)
+    GHOST FLY V17 - ULTRA STEALTH
+    Bypass: Cosmo$ Hard-Anchor & VB Gravity Check
 ]]
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local root = character:WaitForChild("HumanoidRootPart")
-local mouse = player:GetMouse()
 local runService = game:GetService("RunService")
+local inputService = game:GetService("UserInputService")
 
--- 1. CLOAK DE ADMIN (Bypass de Punição do Cosmo)
+-- 1. CLOAK DE IMUNIDADE (Bypass Cosmo)
 local admin = Instance.new("BoolValue")
 admin.Name = "Admin"
 admin.Value = true
 admin.Parent = player
 
--- Variáveis de Voo
+-- Variáveis
 local flying = false
-local speed = 50 -- Velocidade segura para não dar kick por SpeedHack
-local ctrl = {f = 0, b = 0, l = 0, r = 0}
-local lastCtrl = {f = 0, b = 0, l = 0, r = 0}
+local speed = 1.5 -- Velocidade ajustada para não dar Kick
+local cam = workspace.CurrentCamera
 
--- 2. INTERFACE SILENCIOSA (Evita LogService)
+-- Interface Invisível para Scanners
 local sg = Instance.new("ScreenGui", game:GetService("CoreGui"))
-sg.Name = "Module_" .. math.random(100, 999)
-
+sg.Name = "Win_" .. math.random(111, 999)
 local btn = Instance.new("TextButton", sg)
-btn.Size = UDim2.new(0, 40, 0, 40)
-btn.Position = UDim2.new(0, 10, 0.7, 0)
-btn.Text = "FLY"
-btn.BackgroundTransparency = 0.5
-btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+btn.Size = UDim2.new(0, 30, 0, 30)
+btn.Position = UDim2.new(0, 5, 0.85, 0)
+btn.Text = ""
+btn.BackgroundTransparency = 0.9
 
--- Função de Voo
 local function toggleFly()
     flying = not flying
     if flying then
-        local bv = Instance.new("BodyVelocity", root)
-        bv.Velocity = Vector3.new(0, 0.1, 0) -- Força mínima para anular a gravidade
-        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-        bv.Name = "Velocity_X"
-        
-        local bg = Instance.new("BodyGyro", root)
-        bg.P = 9e4
-        bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-        bg.CFrame = root.CFrame
-        bg.Name = "Gyro_X"
-        
-        task.spawn(function()
-            repeat
-                runService.RenderStepped:Wait()
-                character.Humanoid.PlatformStand = true
-                
-                if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
-                    speed = 50 -- Velocidade estável
-                else
-                    speed = 0
-                end
-                
-                if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
-                    bv.Velocity = ((workspace.CurrentCamera.CFrame.LookVector * (ctrl.f + ctrl.b)) + ((workspace.CurrentCamera.CFrame * CFrame.new(ctrl.l + ctrl.r, (ctrl.f + ctrl.b) * 0.2, 0).p) - workspace.CurrentCamera.CFrame.p)) * speed
-                    lastCtrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
-                else
-                    bv.Velocity = Vector3.new(0, 0.1, 0)
-                end
-                bg.CFrame = workspace.CurrentCamera.CFrame
-            until not flying
-            
-            -- Limpeza ao desligar
-            character.Humanoid.PlatformStand = false
-            bv:Destroy()
-            bg:Destroy()
-        end)
+        btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    else
+        btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     end
 end
 
--- Controles (Teclado)
-mouse.KeyDown:Connect(function(key)
-    if key:lower() == "w" then ctrl.f = 1
-    elseif key:lower() == "s" then ctrl.b = -1
-    elseif key:lower() == "a" then ctrl.l = -1
-    elseif key:lower() == "d" then ctrl.r = 1
-    elseif key:lower() == "f" then toggleFly() -- Tecla F para Voar
-    end
-end)
-
-mouse.KeyUp:Connect(function(key)
-    if key:lower() == "w" then ctrl.f = 0
-    elseif key:lower() == "s" then ctrl.b = 0
-    elseif key:lower() == "a" then ctrl.l = 0
-    elseif key:lower() == "d" then ctrl.r = 0
+-- Loop de Movimentação Fantasma
+runService.Stepped:Connect(function()
+    if flying and character then
+        -- Desativa colisões para não ficar preso no chão
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
+        
+        -- Movimentação por CFrame (Ignora Gravidade)
+        local moveDir = Vector3.new(0, 0.001, 0) -- Oscilação mínima
+        
+        if inputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + (cam.CFrame.LookVector * speed) end
+        if inputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - (cam.CFrame.LookVector * speed) end
+        if inputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - (cam.CFrame.RightVector * speed) end
+        if inputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + (cam.CFrame.RightVector * speed) end
+        if inputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, speed, 0) end
+        if inputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - Vector3.new(0, speed, 0) end
+        
+        root.CFrame = root.CFrame + moveDir
+        root.Velocity = Vector3.new(0, 0, 0) -- Zera a velocidade física para o VB não ver
     end
 end)
 
 btn.MouseButton1Click:Connect(toggleFly)
+inputService.InputBegan:Connect(function(io, p)
+    if not p and io.KeyCode == Enum.KeyCode.F then toggleFly() end
+end)
