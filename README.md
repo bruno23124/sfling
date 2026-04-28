@@ -1,77 +1,80 @@
 --[[ 
-    GHOST KILLER V5 - INVISIBILIDADE TOTAL + DANO FIX
-    O corpo fica seguro e a Ripa faz o trabalho.
+    GHOST KILLER V6 - ANTI-NICK & STEALTH
+    Remove o nome da cabeça e esconde o corpo real.
 ]]
 
 local player = game.Players.LocalPlayer
 local coreGui = game:GetService("CoreGui")
 local runService = game:GetService("RunService")
 
-if coreGui:FindFirstChild("GhostV5") then coreGui:FindFirstChild("GhostV5"):Destroy() end
+if coreGui:FindFirstChild("GhostV6") then coreGui:FindFirstChild("GhostV6"):Destroy() end
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "GhostV5"
+screenGui.Name = "GhostV6"
 screenGui.Parent = coreGui
 screenGui.ResetOnSpawn = false 
 
 local active = false
-local range = 150 -- Distância que ele busca as vítimas
+local range = 35 -- Raio de ação (35 é mais seguro para não bugar o teleporte)
 
 local btn = Instance.new("TextButton")
 btn.Size = UDim2.new(0, 160, 0, 50)
 btn.Position = UDim2.new(0.85, 0, 0.65, 0)
-btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-btn.Text = "Ghost V5: OFF"
+btn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+btn.Text = "STEALTH AURA: OFF"
 btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 btn.Font = Enum.Font.SourceSansBold
 btn.TextSize = 14
 btn.Parent = screenGui
 btn.Draggable = true
 
--- Função para encontrar o alvo mais próximo
-local function getClosestPlayer()
-    local closest = nil
-    local dist = range
-    for _, v in pairs(game.Players:GetPlayers()) do
-        if v ~= player and v.Character and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
-            local hrp = v.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local d = (player.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
-                if d < dist then
-                    closest = v.Character
-                    dist = d
-                end
-            end
+-- FUNÇÃO PARA ESCONDER O NICK (Local e Servidor-Bypass)
+local function hideIdentity(char)
+    local hum = char:WaitForChild("Humanoid")
+    -- Remove o nome padrão do Roblox
+    hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+    
+    -- Deleta BillboardGuis (Nomes customizados do mapa)
+    for _, v in pairs(char:GetDescendants()) do
+        if v:IsA("BillboardGui") then
+            v:Destroy()
         end
     end
-    return closest
 end
 
--- LOOP PRINCIPAL
-runService.Stepped:Connect(function()
+-- LOOP DE ATAQUE E POSICIONAMENTO
+runService.RenderStepped:Connect(function()
     if active then
         pcall(function()
             local char = player.Character
             local tool = char:FindFirstChildOfClass("Tool")
-            local myHRP = char:FindFirstChild("HumanoidRootPart")
+            local hrp = char:FindFirstChild("HumanoidRootPart")
             
-            if myHRP and tool then
-                local target = getClosestPlayer()
-                if target then
-                    -- 1. TELEPORTE NAS COSTAS
-                    myHRP.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 0, 2.5)
-                    
-                    -- 2. INVISIBILIDADE (Joga o corpo levemente para baixo para não ser visto)
-                    myHRP.Velocity = Vector3.new(0, 0, 0)
-                    
-                    -- 3. FORÇAR DANO (Ativa a ferramenta e usa o interesse de toque)
-                    tool:Activate()
-                    for _, part in pairs(target:GetChildren()) do
-                        if part:IsA("BasePart") then
-                            firetouchinterest(part, tool.Handle, 0)
-                            firetouchinterest(part, tool.Handle, 1)
+            if hrp and tool then
+                -- Busca o alvo
+                local target = nil
+                local dist = range
+                for _, v in pairs(game.Players:GetPlayers()) do
+                    if v ~= player and v.Character and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+                        local tHRP = v.Character:FindFirstChild("HumanoidRootPart")
+                        if tHRP then
+                            local d = (hrp.Position - tHRP.Position).Magnitude
+                            if d < dist then
+                                target = v.Character
+                                dist = d
+                            end
                         end
                     end
+                end
+
+                if target then
+                    -- TELEPORTE ESTRATÉGICO: 5 studs abaixo do alvo (Invisível e difícil de clicar)
+                    hrp.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, -5, 0)
+                    
+                    -- ATAQUE
+                    tool:Activate()
+                    firetouchinterest(target.HumanoidRootPart, tool.Handle, 0)
+                    firetouchinterest(target.HumanoidRootPart, tool.Handle, 1)
                 end
             end
         end)
@@ -80,11 +83,16 @@ end)
 
 btn.MouseButton1Click:Connect(function()
     active = not active
-    btn.Text = active and "MODO FANTASMA: ON 💀" or "Ghost V5: OFF"
-    btn.BackgroundColor3 = active and Color3.fromRGB(150, 0, 0) or Color3.fromRGB(20, 20, 20)
-    
-    -- Se desligar, garante que o boneco pare de tentar atravessar o chão
-    if not active then
-        player.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+    if active then
+        if player.Character then hideIdentity(player.Character) end
+        btn.Text = "MODO FANTASMA: ATIVO 🕵️"
+        btn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+    else
+        btn.Text = "STEALTH AURA: OFF"
+        btn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+        -- Tenta resetar o nome ao desligar (precisa de reset do personagem no jogo)
+        if player.Character then 
+            player.Character.Humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer 
+        end
     end
 end)
