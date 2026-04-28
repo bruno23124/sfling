@@ -1,62 +1,65 @@
 --[[ 
-    GHOST BUMPER V26 - PDB BYPASS
-    Como usar: Chegue perto do player e "atravesse" ele.
-    O impacto físico vai lançá-lo sem disparar o anti-cheat de CFrame.
+    KILL AURA GHOST V27 - SILENT KILLER
+    Bypass: Magnitude Check & VB Anti-Cheat
 ]]
 
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local player = game.Players.LocalPlayer
-local char = player.Character
-local root = char:WaitForChild("HumanoidRootPart")
+local localPlayer = Players.LocalPlayer
 
--- 1. CONFIGURAÇÃO DA VELOCIDADE (Sem dar Speed Kick)
-char.Humanoid.WalkSpeed = 45 -- Valor seguro para o PDB
+-- 1. CONFIGURAÇÕES
+_G.AuraActive = false
+local range = 50 -- Distância do ataque (não coloque muito alto para não dar kick)
 
--- 2. CRIAÇÃO DO OBJETO DE IMPACTO (Invisível)
-local bumper = Instance.new("Part")
-bumper.Name = "BypassBumper"
-bumper.Parent = char
-bumper.Size = Vector3.new(4, 4, 4) -- Área de impacto
-bumper.Transparency = 0.8 -- Quase invisível
-bumper.CanCollide = true
-bumper.Color = Color3.fromRGB(255, 255, 0)
-
--- Gruda o objeto em você para ele te seguir
-local weld = Instance.new("Weld", bumper)
-weld.Part0 = bumper
-weld.Part1 = root
-weld.C0 = CFrame.new(0, 0, 1.5) -- Fica um pouco na sua frente
-
--- 3. BYPASS DE COLISÃO DO SEU CORPO
--- Você fica fantasma, mas o Bumper (objeto) continua sólido
-for _, v in pairs(char:GetDescendants()) do
-    if v:IsA("BasePart") and v ~= bumper then
-        v.CanCollide = false
+-- 2. FUNÇÃO DE ATAQUE SILENCIOSO
+local function attack()
+    local char = localPlayer.Character
+    local tool = char and char:FindFirstChildOfClass("Tool")
+    
+    if tool and tool:FindFirstChild("Handle") then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= localPlayer and p.Character and p.Character:FindFirstChild("Head") then
+                local targetPart = p.Character.Head
+                local distance = (localPlayer.Character.HumanoidRootPart.Position - targetPart.Position).Magnitude
+                
+                -- Só ataca se estiver no range para evitar detecção de teleporte de arma
+                if distance <= range then
+                    -- Simula o toque da arma no alvo
+                    firetouchinterest(targetPart, tool.Handle, 0)
+                    firetouchinterest(targetPart, tool.Handle, 1)
+                end
+            end
+        end
     end
 end
 
--- 4. O MOTOR DE FLING (O segredo do PDB)
--- Usamos BodyAngularVelocity porque o VB Anti-Cheat foca em vetores de Velocity
-local force = Instance.new("BodyAngularVelocity", bumper)
-force.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-force.AngularVelocity = Vector3.new(0, 999999, 0) -- Giro massivo
-
-local push = Instance.new("BodyVelocity", bumper)
-push.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-push.Velocity = Vector3.new(0, 20, 0) -- Leve força para cima para tirar o cara do chão
-
--- 5. INTERFACE SIMPLES
-local sg = Instance.new("ScreenGui", game:GetService("CoreGui"))
-local btn = Instance.new("TextButton", sg)
-btn.Size = UDim2.new(0, 100, 0, 40)
-btn.Position = UDim2.new(0, 10, 0.5, -20)
-btn.Text = "BUMPER ON"
-btn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-
-btn.MouseButton1Click:Connect(function()
-    bumper.CanCollide = not bumper.CanCollide
-    btn.Text = bumper.CanCollide and "BUMPER ON" or "BUMPER OFF"
-    btn.BackgroundColor3 = bumper.CanCollide and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+-- 3. LOOP DE EXECUÇÃO
+task.spawn(function()
+    while true do
+        task.wait(0.1) -- Delay para não lagar o seu PC
+        if _G.AuraActive then
+            pcall(attack)
+        end
+    end
 end)
 
-print("✅ Bypass Bumper V26 Ativo! Aproxime-se dos alvos.")
+-- 4. INTERFACE DE CONTROLE (ON/OFF)
+local sg = Instance.new("ScreenGui", game:GetService("CoreGui"))
+sg.Name = "AuraSystem"
+
+local btn = Instance.new("TextButton", sg)
+btn.Size = UDim2.new(0, 150, 0, 50)
+btn.Position = UDim2.new(0.05, 0, 0.4, 0)
+btn.Text = "KILL AURA: OFF"
+btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+btn.Font = Enum.Font.SourceSansBold
+btn.TextSize = 20
+
+btn.MouseButton1Click:Connect(function()
+    _G.AuraActive = not _G.AuraActive
+    btn.Text = _G.AuraActive and "KILL AURA: ON" or "KILL AURA: OFF"
+    btn.BackgroundColor3 = _G.AuraActive and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+end)
+
+print("✅ Kill Aura Ghost V27 Carregada! Use a Ripa.")
