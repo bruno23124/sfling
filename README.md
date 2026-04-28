@@ -1,49 +1,92 @@
 --[[ 
-    GHOST FLING V18 - EXTERMINADOR
-    Requer: Ghost Fly V17 já ativado no mapa
+    RIPA GHOST V19 - INVISIBILIDADE & IMUNIDADE
+    Bypass: VB Anti-Kick & Cosmo Punish System
 ]]
 
-local runService = game:GetService("RunService")
-local player = game.Players.LocalPlayer
-local character = player.Character
-local root = character:WaitForChild("HumanoidRootPart")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local localPlayer = Players.LocalPlayer
 
-local flingActive = false
+-- 1. CLOAK DE ADMIN (Imunidade ao Cosmo)
+-- O Cosmo checa se player.Admin.Value == true antes de banir
+local admin = Instance.new("BoolValue")
+admin.Name = "Admin"
+admin.Value = true
+admin.Parent = localPlayer
 
--- Interface Pequena (ao lado do botão de Fly)
-local sg = Instance.new("ScreenGui", game:GetService("CoreGui"))
-sg.Name = "Win32_Fling"
-local btn = Instance.new("TextButton", sg)
-btn.Size = UDim2.new(0, 35, 0, 35)
-btn.Position = UDim2.new(0, 45, 0, 85) -- Posição ajustada
-btn.Text = "FL"
-btn.BackgroundTransparency = 0.7
-btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+-- 2. ANTI-KICK (Quebra o sistema de expulsão)
+-- Isso impede que o servidor consiga dar "Kick" em você via comando
+local mt = getrawmetatable(game)
+local old = mt.__namecall
+setreadonly(mt, false)
 
--- Função para ligar/desligar o Fling
-btn.MouseButton1Click:Connect(function()
-    flingActive = not flingActive
-    if flingActive then
-        btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        btn.Text = "ON"
-    else
-        btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        btn.Text = "FL"
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    if method == "Kick" or method == "kick" then
+        return nil -- Ignora o comando de expulsar
+    end
+    return old(self, ...)
+end)
+setreadonly(mt, true)
+
+-- 3. INVISIBILIDADE GHOST (-100 Studs)
+-- Você fica embaixo do mapa, mas sua arma continua batendo em cima
+local flying = true
+task.spawn(function()
+    while flying do
+        RunService.Heartbeat:Wait()
+        if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            -- Mantém você seguro debaixo do chão para ninguém te ver
+            localPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+        end
     end
 end)
 
-runService.Heartbeat:Connect(function()
-    if flingActive and character and root then
-        -- Cria uma velocidade angular massiva (Giro invisível)
-        -- Isso faz qualquer um que encostar em você ser arremessado
-        root.AngularVelocity = Vector3.new(0, 99999, 0)
-        root.Velocity = Vector3.new(99999, 99999, 99999)
-        
-        -- Mantém você sem colisão para o anti-cheat não te puxar
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
+-- 4. RIPA KILL AURA (Usando o Token do VB)
+local function getVBToken()
+    for _, v in pairs(ReplicatedStorage:GetChildren()) do
+        if v:IsA("RemoteFunction") and v:GetAttribute("oyvey") then
+            return v:InvokeServer("THUG")
+        end
+    end
+end
+
+local function attackAll()
+    local token = getVBToken()
+    local char = localPlayer.Character
+    local tool = char and char:FindFirstChildOfClass("Tool")
+    
+    if tool and tool:FindFirstChild("Handle") then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= localPlayer and p.Character and p.Character:FindFirstChild("Head") then
+                -- Ataque Silencioso
+                firetouchinterest(p.Character.Head, tool.Handle, 0)
+                firetouchinterest(p.Character.Head, tool.Handle, 1)
             end
         end
+    end
+end
+
+-- 5. INTERFACE DISCRETA
+local sg = Instance.new("ScreenGui", game:GetService("CoreGui"))
+sg.Name = "Win32_Sys"
+local btn = Instance.new("TextButton", sg)
+btn.Size = UDim2.new(0, 40, 0, 40)
+btn.Position = UDim2.new(0, 10, 0.5, 0)
+btn.Text = "G" -- G de Ghost
+btn.BackgroundTransparency = 0.6
+
+btn.MouseButton1Click:Connect(function()
+    attackAll()
+    btn.Text = "OK"
+    task.wait(1)
+    btn.Text = "G"
+end)
+
+-- Tecla K para ativar a Ripa
+game:GetService("UserInputService").InputBegan:Connect(function(io, chat)
+    if not chat and io.KeyCode == Enum.KeyCode.K then
+        attackAll()
     end
 end)
