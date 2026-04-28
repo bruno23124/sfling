@@ -1,98 +1,58 @@
 --[[ 
-    GHOST KILLER V6 - ANTI-NICK & STEALTH
-    Remove o nome da cabeça e esconde o corpo real.
+    COSMO EXTERMINATOR V9
+    Explora a falha de validação de Admin e o Remote de punição.
 ]]
 
-local player = game.Players.LocalPlayer
-local coreGui = game:GetService("CoreGui")
-local runService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local localPlayer = Players.LocalPlayer
 
-if coreGui:FindFirstChild("GhostV6") then coreGui:FindFirstChild("GhostV6"):Destroy() end
+-- 1. CLOAK DE ADMIN (Engana a função Punish do Cosmo)
+local adminTag = Instance.new("BoolValue")
+adminTag.Name = "Admin"
+adminTag.Value = true
+adminTag.Parent = localPlayer
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "GhostV6"
-screenGui.Parent = coreGui
-screenGui.ResetOnSpawn = false 
+-- 2. LOCALIZAR O CANAL DE PUNIÇÃO (Pasta 'ç' detectada no cosmo2.txt)
+local replicatedFolder = ReplicatedStorage:WaitForChild("Replicated", 5)
+local punishmentRemote = nil
 
-local active = false
-local range = 35 -- Raio de ação (35 é mais seguro para não bugar o teleporte)
+if replicatedFolder then
+    local eventsFolder = replicatedFolder:FindFirstChild("ç")
+    if eventsFolder then
+        punishmentRemote = eventsFolder:FindFirstChildOfClass("RemoteEvent")
+    end
+end
 
-local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(0, 160, 0, 50)
-btn.Position = UDim2.new(0.85, 0, 0.65, 0)
-btn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-btn.Text = "STEALTH AURA: OFF"
-btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-btn.Font = Enum.Font.SourceSansBold
-btn.TextSize = 14
-btn.Parent = screenGui
-btn.Draggable = true
+-- 3. FUNÇÃO DE EXTERMÍNIO
+local function kickEveryone()
+    if not punishmentRemote then 
+        print("Falha: Remote de punição não encontrado.")
+        return 
+    end
 
--- FUNÇÃO PARA ESCONDER O NICK (Local e Servidor-Bypass)
-local function hideIdentity(char)
-    local hum = char:WaitForChild("Humanoid")
-    -- Remove o nome padrão do Roblox
-    hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-    
-    -- Deleta BillboardGuis (Nomes customizados do mapa)
-    for _, v in pairs(char:GetDescendants()) do
-        if v:IsA("BillboardGui") then
-            v:Destroy()
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= localPlayer then
+            -- Dispara o remote fingindo que o alvo usou um exploit pesado
+            -- Isso ativa o Punish(player, "Ban", reason) do servidor
+            punishmentRemote:FireServer("Exploit Detectado: Synapse V3 Injection")
+            print("Sinal de banimento enviado para: " .. v.Name)
         end
     end
 end
 
--- LOOP DE ATAQUE E POSICIONAMENTO
-runService.RenderStepped:Connect(function()
-    if active then
-        pcall(function()
-            local char = player.Character
-            local tool = char:FindFirstChildOfClass("Tool")
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            
-            if hrp and tool then
-                -- Busca o alvo
-                local target = nil
-                local dist = range
-                for _, v in pairs(game.Players:GetPlayers()) do
-                    if v ~= player and v.Character and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
-                        local tHRP = v.Character:FindFirstChild("HumanoidRootPart")
-                        if tHRP then
-                            local d = (hrp.Position - tHRP.Position).Magnitude
-                            if d < dist then
-                                target = v.Character
-                                dist = d
-                            end
-                        end
-                    end
-                end
-
-                if target then
-                    -- TELEPORTE ESTRATÉGICO: 5 studs abaixo do alvo (Invisível e difícil de clicar)
-                    hrp.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, -5, 0)
-                    
-                    -- ATAQUE
-                    tool:Activate()
-                    firetouchinterest(target.HumanoidRootPart, tool.Handle, 0)
-                    firetouchinterest(target.HumanoidRootPart, tool.Handle, 1)
-                end
-            end
-        end)
-    end
-end)
+-- Interface Simples e Silenciosa (Evita LogService)
+local screenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local btn = Instance.new("TextButton", screenGui)
+btn.Size = UDim2.new(0, 200, 0, 50)
+btn.Position = UDim2.new(0.5, -100, 0.1, 0)
+btn.Text = "LIMPAR SERVIDOR (MASS KICK)"
+btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 btn.MouseButton1Click:Connect(function()
-    active = not active
-    if active then
-        if player.Character then hideIdentity(player.Character) end
-        btn.Text = "MODO FANTASMA: ATIVO 🕵️"
-        btn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-    else
-        btn.Text = "STEALTH AURA: OFF"
-        btn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-        -- Tenta resetar o nome ao desligar (precisa de reset do personagem no jogo)
-        if player.Character then 
-            player.Character.Humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer 
-        end
-    end
+    kickEveryone()
+    btn.Text = "COMANDO ENVIADO!"
+    wait(2)
+    btn.Text = "LIMPAR SERVIDOR (MASS KICK)"
 end)
