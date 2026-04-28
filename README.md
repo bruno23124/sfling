@@ -1,40 +1,32 @@
 --[[ 
-    PHYSICAL FLING V24 - SERVER-SIDE FORCE
-    Instruções: Chegue perto do player e "atropele" ele.
+    GROUND TORNADO V25 - PDB EDITION
+    Instruções: Apenas encoste nos players andando.
 ]]
 
-local RunService = game:GetService("RunService")
 local player = game.Players.LocalPlayer
-local character = player.Character
-local root = character:WaitForChild("HumanoidRootPart")
+local char = player.Character
+local root = char:WaitForChild("HumanoidRootPart")
+local runService = game:GetService("RunService")
 
--- 1. CRIA O MÍSSIL DE FÍSICA
-local power = 999999 -- Força do arremesso
-local flingPart = Instance.new("Part")
-flingPart.Name = "BypassPart"
-flingPart.Parent = character
-flingPart.Size = Vector3.new(5, 5, 5) -- Tamanho do "hitbox"
-flingPart.Transparency = 0.5 -- 0.5 para você ver onde está batendo, depois mude para 1
-flingPart.CanCollide = true -- PRECISA de colisão para empurrar os outros
-flingPart.Color = Color3.fromRGB(255, 0, 0)
+-- 1. VELOCIDADE DE CORRIDA (Sem voar, apenas correr rápido)
+char.Humanoid.WalkSpeed = 60 -- Velocidade alta, mas que não kicka fácil
 
--- 2. TIRA SUA COLISÃO (Ghost Mode) mas mantém a do Míssil
-for _, v in pairs(character:GetDescendants()) do
-    if v:IsA("BasePart") and v ~= flingPart then
-        v.CanCollide = false
-    end
-end
-
--- 3. LOOP DE GIRO E POSIÇÃO
-RunService.Stepped:Connect(function()
-    if character and root then
-        -- O míssil fica exatamente na sua frente
-        flingPart.CFrame = root.CFrame * CFrame.new(0, 0, -2) 
-        
-        -- Velocidade Angular (O segredo do Fling)
-        flingPart.AngularVelocity = Vector3.new(0, power, 0)
-        flingPart.Velocity = Vector3.new(0, power, 0) -- Empurra para CIMA
+-- 2. O FLING TERRESTRE
+local flingActive = true
+runService.Heartbeat:Connect(function()
+    if flingActive and root then
+        -- Cria a força rotacional invisível
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false -- Você atravessa as coisas
+                -- Mas o RootPart vai ter a força de impacto
+                if part.Name == "HumanoidRootPart" then
+                    part.Velocity = Vector3.new(0, 5000, 0) -- Força pra CIMA
+                    part.AngularVelocity = Vector3.new(0, 9999, 0) -- Giro louco
+                end
+            end
+        end
     end
 end)
 
-print("✅ Míssil Ativo! Encoste nos players para mandá-los pro céu.")
+print("✅ TORNADO ATIVO! Corra na direção dos players na quadra.")
