@@ -1,69 +1,39 @@
 --[[ 
-    GHOST FLY V17 - ULTRA STEALTH
-    Bypass: Cosmo$ Hard-Anchor & VB Gravity Check
+    GHOST FLING V18 - EXTERMINADOR
+    Requer: Ghost Fly V17 Ativado
 ]]
 
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local root = character:WaitForChild("HumanoidRootPart")
 local runService = game:GetService("RunService")
-local inputService = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+local character = player.Character
+local root = character:WaitForChild("HumanoidRootPart")
 
--- 1. CLOAK DE IMUNIDADE (Bypass Cosmo)
-local admin = Instance.new("BoolValue")
-admin.Name = "Admin"
-admin.Value = true
-admin.Parent = player
+local flingActive = false
 
--- Variáveis
-local flying = false
-local speed = 1.5 -- Velocidade ajustada para não dar Kick
-local cam = workspace.CurrentCamera
-
--- Interface Invisível para Scanners
+-- Interface Simples
 local sg = Instance.new("ScreenGui", game:GetService("CoreGui"))
-sg.Name = "Win_" .. math.random(111, 999)
 local btn = Instance.new("TextButton", sg)
-btn.Size = UDim2.new(0, 30, 0, 30)
-btn.Position = UDim2.new(0, 5, 0.85, 0)
-btn.Text = ""
-btn.BackgroundTransparency = 0.9
+btn.Size = UDim2.new(0, 40, 0, 40)
+btn.Position = UDim2.new(0, 50, 0, 85) -- Do lado do botão de Fly
+btn.Text = "FLING"
+btn.BackgroundTransparency = 0.5
 
-local function toggleFly()
-    flying = not flying
-    if flying then
-        btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    else
-        btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    end
-end
+btn.MouseButton1Click:Connect(function()
+    flingActive = not flingActive
+    btn.BackgroundColor3 = flingActive and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(255, 255, 255)
+end)
 
--- Loop de Movimentação Fantasma
-runService.Stepped:Connect(function()
-    if flying and character then
-        -- Desativa colisões para não ficar preso no chão
+runService.Heartbeat:Connect(function()
+    if flingActive and character and root then
+        -- Faz o RootPart girar loucamente apenas para a física, mas você continua vendo normal
+        root.AngularVelocity = Vector3.new(0, 99999, 0)
+        root.Velocity = Vector3.new(99999, 99999, 99999)
+        
+        -- Garante que você não morra no processo
         for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
+            if part:IsA("BasePart") then
                 part.CanCollide = false
             end
         end
-        
-        -- Movimentação por CFrame (Ignora Gravidade)
-        local moveDir = Vector3.new(0, 0.001, 0) -- Oscilação mínima
-        
-        if inputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + (cam.CFrame.LookVector * speed) end
-        if inputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - (cam.CFrame.LookVector * speed) end
-        if inputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - (cam.CFrame.RightVector * speed) end
-        if inputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + (cam.CFrame.RightVector * speed) end
-        if inputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, speed, 0) end
-        if inputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - Vector3.new(0, speed, 0) end
-        
-        root.CFrame = root.CFrame + moveDir
-        root.Velocity = Vector3.new(0, 0, 0) -- Zera a velocidade física para o VB não ver
     end
-end)
-
-btn.MouseButton1Click:Connect(toggleFly)
-inputService.InputBegan:Connect(function(io, p)
-    if not p and io.KeyCode == Enum.KeyCode.F then toggleFly() end
 end)
